@@ -44,6 +44,7 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins(
                 "http://localhost:5173",
+                "https://felipe-goldberg-auto-slot-unificado.vercel.app",
                 "http://localhost:3000"
             )
                   .AllowAnyHeader()
