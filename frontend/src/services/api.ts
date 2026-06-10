@@ -4,7 +4,7 @@ import axios from 'axios';
 const baseURL = import.meta.env.VITE_API_URL || '';
 
 const api = axios.create({
-  baseURL,
+  baseURL: "https://adequate-flow-production-b39a.up.railway.app",
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
