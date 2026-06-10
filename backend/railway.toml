@@ -3,7 +3,6 @@ builder = "dockerfile"
 dockerfilePath = "AutoSlot (API)/Dockerfile"
 
 [deploy]
-startCommand = "dotnet \"AutoSlot (API).dll\""
-healthcheckPath = "/swagger"
-healthcheckTimeout = 60
+healthcheckPath = "/health"
+healthcheckTimeout = 120
 restartPolicyType = "on_failure"
