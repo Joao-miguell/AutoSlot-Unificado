@@ -91,7 +91,7 @@ export default function GraficosReceita() {
               tickFormatter={v => v === 0 ? '' : `R$${v}`} />
             <Tooltip
               contentStyle={TOOLTIP_STYLE}
-              formatter={(v) => [moeda(Number(v ?? 0)), 'Receita']}
+              formatter={(v: any) => moeda(Number(v ?? 0))}
               labelStyle={{ color: 'var(--text)', fontWeight: 700 }}
             />
             <Bar dataKey="receita" fill="var(--accent)" radius={[4, 4, 0, 0]} maxBarSize={40} />
@@ -113,7 +113,7 @@ export default function GraficosReceita() {
             <YAxis tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
             <Tooltip
               contentStyle={TOOLTIP_STYLE}
-              formatter={(v) => [Number(v ?? 0), 'Atendimentos']}
+              formatter={(v: any) => { const n = Number(v ?? 0); return `${n} atendimento${n !== 1 ? 's' : ''}`; }}
               labelStyle={{ color: 'var(--text)', fontWeight: 700 }}
             />
             <Line

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useParking } from '../../context/ParkingContext';
 import { toDateTimeLocal } from '../../utils';
@@ -52,6 +52,21 @@ export default function NovaReserva() {
   const [sucesso, setSucesso] = useState(false);
   const [tipoPlaca, setTipoPlaca] = useState<'antigo' | 'mercosul'>('antigo');
 
+  // BUG FIX: sincroniza vagaId quando as vagas carregam de forma assíncrona.
+  // Sem isso, o form é inicializado com vagaId=0 (vagas ainda vazias no mount)
+  // e o select exibe a vaga correta visualmente mas envia 0 ao backend.
+  useEffect(() => {
+    if (vagasLivres.length > 0) {
+      setForm(f => {
+        const vagaAindaDisponivel = vagasLivres.some(v => v.id === f.vagaId);
+        if (!vagaAindaDisponivel) {
+          return { ...f, vagaId: vagasLivres[0].id };
+        }
+        return f;
+      });
+    }
+  }, [vagasLivres]);
+
   const validar = () => {
     const novosErros: Record<string, string> = {};
     if (!nomeCompletoValido(form.cliente)) novosErros.cliente = 'Informe nome e sobrenome. Ex.: João Silva.';
@@ -61,6 +76,7 @@ export default function NovaReserva() {
     } else {
       if (!placaMercosulValida(placaUpper)) novosErros.placa = 'Placa Mercosul deve seguir o formato ABC1D23 (ex: BRA2E19).';
     }
+    if (!form.modelo.trim()) novosErros.modelo = 'Informe o modelo do veículo. Ex.: Honda Civic.';
     if (!form.vagaId) novosErros.vaga = 'Selecione uma vaga livre.';
     const entrada = new Date(form.entrada);
     const saida = new Date(form.saidaPrevista);
@@ -172,8 +188,13 @@ export default function NovaReserva() {
             </label>
 
             <label className="field">
-              <span>Modelo do veículo</span>
-              <input value={form.modelo} onChange={e => setForm(f => ({ ...f, modelo: e.target.value }))} placeholder="Ex.: Honda Civic" />
+              <span>Modelo do veículo *</span>
+              <input
+                value={form.modelo}
+                onChange={e => { setForm(f => ({ ...f, modelo: e.target.value })); setErros(e2 => ({ ...e2, modelo: '' })); }}
+                placeholder="Ex.: Honda Civic"
+              />
+              {erros.modelo && <small style={{ color: 'var(--danger)', fontSize: 12 }}>{erros.modelo}</small>}
             </label>
 
             <label className="field">
