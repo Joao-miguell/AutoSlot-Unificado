@@ -24,9 +24,9 @@ export type ConfigTema = {
   usarCorCustom: boolean;
 };
 
-const STORAGE_KEY = '@AutoSlot:tema';
+export const STORAGE_KEY = '@AutoSlot:tema';
 
-const PADRAO: ConfigTema = {
+export const PADRAO: ConfigTema = {
   nomeEmpresa: 'AutoSlot',
   logoBase64: '',
   presetIndex: 0,
@@ -34,29 +34,43 @@ const PADRAO: ConfigTema = {
   usarCorCustom: false,
 };
 
-function aplicarCssVars(config: ConfigTema) {
+export function aplicarCssVars(config: ConfigTema) {
   const root = document.documentElement;
   const preset = PRESETS_COR[config.presetIndex] ?? PRESETS_COR[0];
   const accent = config.usarCorCustom ? config.corCustom : preset.accent;
-
-  // Gera hover e sub a partir da cor customizada
-  const accentSub = config.usarCorCustom
-    ? `${accent}20`
-    : preset.accentSub;
-  const accentHover = config.usarCorCustom
-    ? accent
-    : preset.accentHover;
+  const accentSub = config.usarCorCustom ? `${accent}20` : preset.accentSub;
+  const accentHover = config.usarCorCustom ? accent : preset.accentHover;
 
   root.style.setProperty('--accent', accent);
   root.style.setProperty('--accent-sub', accentSub);
   root.style.setProperty('--accent-hover', accentHover);
 }
 
+/**
+ * Lê o tema do localStorage e aplica as CSS vars imediatamente.
+ * Deve ser chamada ANTES do React renderizar (em main.tsx) para
+ * evitar flash de cores padrão na recarga da página.
+ */
+export function aplicarTemaDoStorage() {
+  try {
+    const salvo = localStorage.getItem(STORAGE_KEY);
+    if (salvo) {
+      const config: ConfigTema = { ...PADRAO, ...JSON.parse(salvo) };
+      aplicarCssVars(config);
+    }
+  } catch {
+    // se der erro no parse, continua com o tema padrão
+  }
+}
+
 export function useTema() {
   const [config, setConfig] = useState<ConfigTema>(() => {
     try {
       const salvo = localStorage.getItem(STORAGE_KEY);
-      return salvo ? { ...PADRAO, ...JSON.parse(salvo) } : PADRAO;
+      const cfg = salvo ? { ...PADRAO, ...JSON.parse(salvo) } : PADRAO;
+      // Aplica síncronamente no primeiro render para evitar flash de cor padrão
+      aplicarCssVars(cfg);
+      return cfg;
     } catch {
       return PADRAO;
     }
