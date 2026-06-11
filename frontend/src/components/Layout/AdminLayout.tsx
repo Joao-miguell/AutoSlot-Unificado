@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../auth/ThemeContext';
+import { useTema } from '../../hooks/useTema';
 import {
   FileText, Settings, LogOut, Sun, Moon,
-  Map, LogIn, LogOut as LogOutIcon, BookOpen, ShieldCheck, PlusCircle, Users, User,
+  Map, LogIn, LogOut as LogOutIcon, BookOpen, ShieldCheck, PlusCircle, Users, User, Search, Clock,
 } from 'lucide-react';
-import logoUrl from '../../images/Logo.png';
+import defaultLogoUrl from '../../images/Logo.png';
+import BuscaPlaca from '../BuscaPlaca';
+import ToastContainer from '../ToastContainer';
 
 type AdminLayoutProps = {
   children: React.ReactNode;
@@ -15,8 +18,27 @@ type AdminLayoutProps = {
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const { usuario, logout } = useAuth();
   const { temaEscuro, alternarTema } = useTheme();
+  const { config } = useTema();
   const navigate = useNavigate();
   const isAdmin = usuario?.perfil === 'ADMIN';
+  const [buscaAberta, setBuscaAberta] = useState(false);
+
+  // Aplica o tema salvo ao montar o layout
+  useEffect(() => {
+    // useTema já aplica as vars no hook, este efeito garante re-aplicação no mount
+  }, []);
+
+  // Atalho Ctrl+K para abrir busca
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setBuscaAberta(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const handleSair = () => {
     logout();
@@ -32,9 +54,13 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       <aside className="sidebar">
         {/* Brand */}
         <div className="brand">
-          <img src={logoUrl} alt="AutoSlot" />
+          <img
+            src={config.logoBase64 || defaultLogoUrl}
+            alt={config.nomeEmpresa}
+            style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 4 }}
+          />
           <div>
-            <strong>AutoSlot</strong>
+            <strong>{config.nomeEmpresa || 'AutoSlot'}</strong>
             <span>Parking ERP</span>
           </div>
           <small className="role-tag">{isAdmin ? 'ADMIN' : 'FUNC'}</small>
@@ -76,6 +102,11 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
           <NavLink to="/relatorios" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <FileText size={16} />
             Financeiro
+          </NavLink>
+
+          <NavLink to="/historico" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+            <Clock size={16} />
+            Histórico de Veículos
           </NavLink>
 
           {isAdmin && (
@@ -139,6 +170,20 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
             <span>Olá, {usuario?.nome ?? 'usuário'} — bem-vindo ao painel</span>
           </div>
           <div className="header-right">
+            {/* Botão de busca */}
+            <button
+              className="btn btn-ghost"
+              onClick={() => setBuscaAberta(true)}
+              title="Buscar placa (Ctrl+K)"
+              style={{ padding: '0 12px', minHeight: 38, gap: 6 }}
+            >
+              <Search size={15} />
+              <span style={{ fontSize: 12 }}>Buscar</span>
+              <kbd style={{
+                fontSize: 10, background: 'var(--surface-2)', border: '1px solid var(--line)',
+                borderRadius: 4, padding: '1px 5px', fontFamily: 'monospace', color: 'var(--muted)',
+              }}>Ctrl+K</kbd>
+            </button>
             <button
               className="btn btn-ghost"
               onClick={alternarTema}
@@ -163,6 +208,12 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
 
         {children}
       </main>
+
+      {/* Busca global */}
+      {buscaAberta && <BuscaPlaca onClose={() => setBuscaAberta(false)} />}
+
+      {/* Notificações de reserva expirando */}
+      <ToastContainer />
     </div>
   );
 };

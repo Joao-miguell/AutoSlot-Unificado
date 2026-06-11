@@ -1060,3 +1060,9 @@ html[data-theme="light"] .demo-users { background: var(--bg); }
   .reservas-toolbar { flex-direction: column; align-items: stretch; }
   .status-summary-chips { justify-content: flex-start; }
 }
+
+/* ── Toast animations ─────────────────────────────────────── */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100px); }
+  to   { opacity: 1; transform: translateX(0); }
+}

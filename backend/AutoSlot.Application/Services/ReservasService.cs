@@ -105,6 +105,25 @@ public class ReservasService
             .FirstOrDefaultAsync(r => r.Id == id);
     }
 
+    public async Task<List<Reserva>> BuscarPorPlacaOuCliente(string? placa, string? cliente)
+    {
+        var query = _context.Reservas
+            .Include(r => r.Vaga)
+            .Include(r => r.Funcionario)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(placa))
+            query = query.Where(r => r.Placa.ToUpper().Contains(placa.ToUpper()));
+
+        if (!string.IsNullOrWhiteSpace(cliente))
+            query = query.Where(r => r.NomeCliente.ToUpper().Contains(cliente.ToUpper()));
+
+        return await query
+            .OrderByDescending(r => r.CriadoEm)
+            .Take(100)
+            .ToListAsync();
+    }
+
     public async Task<Reserva> Editar(
         int id, int funcionarioId,
         string nomeCliente, string telefoneCliente,
