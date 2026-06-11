@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useParking } from '../../context/ParkingContext';
 import { toDateTimeLocal } from '../../utils';
 
-function formatarPlaca(valor: string) {
+// ── Formatação de placa ────────────────────────────────────────────────
+function formatarPlacaAntiga(valor: string) {
   const limpo = valor.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
   const letras = limpo.slice(0, 3).replace(/[^A-Z]/g, '');
   const numeros = limpo.slice(3).replace(/[^0-9]/g, '').slice(0, 4);
@@ -11,8 +12,20 @@ function formatarPlaca(valor: string) {
   return numeros ? `${letras}-${numeros}` : `${letras}`;
 }
 
-function placaValida(placa: string) {
+function formatarPlacaMercosul(valor: string) {
+  // Formato: AAA0A00 — 3 letras, 1 dígito, 1 letra, 2 dígitos
+  const limpo = valor.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+  return limpo;
+}
+
+// ── Validação de placa ─────────────────────────────────────────────────
+function placaAntigaValida(placa: string) {
   return /^[A-Z]{3}-\d{4}$/.test(placa);
+}
+
+function placaMercosulValida(placa: string) {
+  // AAA0A00: 3 letras + 1 dígito + 1 letra + 2 dígitos
+  return /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(placa);
 }
 
 function nomeCompletoValido(nome: string) {
@@ -37,11 +50,17 @@ export default function NovaReserva() {
 
   const [erros, setErros] = useState<Record<string, string>>({});
   const [sucesso, setSucesso] = useState(false);
+  const [tipoPlaca, setTipoPlaca] = useState<'antigo' | 'mercosul'>('antigo');
 
   const validar = () => {
     const novosErros: Record<string, string> = {};
     if (!nomeCompletoValido(form.cliente)) novosErros.cliente = 'Informe nome e sobrenome. Ex.: João Silva.';
-    if (!placaValida(form.placa.trim().toUpperCase())) novosErros.placa = 'Placa deve seguir o formato ABC-1234.';
+    const placaUpper = form.placa.trim().toUpperCase();
+    if (tipoPlaca === 'antigo') {
+      if (!placaAntigaValida(placaUpper)) novosErros.placa = 'Placa antiga deve seguir o formato ABC-1234.';
+    } else {
+      if (!placaMercosulValida(placaUpper)) novosErros.placa = 'Placa Mercosul deve seguir o formato ABC1D23 (ex: BRA2E19).';
+    }
     if (!form.vagaId) novosErros.vaga = 'Selecione uma vaga livre.';
     const entrada = new Date(form.entrada);
     const saida = new Date(form.saidaPrevista);
@@ -96,12 +115,58 @@ export default function NovaReserva() {
             </label>
 
             <label className="field">
-              <span>Placa do veículo *</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ margin: 0 }}>Placa do veículo *</span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button
+                    type="button"
+                    onClick={() => { setTipoPlaca('antigo'); setForm(f => ({ ...f, placa: '' })); setErros(e => ({ ...e, placa: '' })); }}
+                    style={{
+                      padding: '3px 10px',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      borderRadius: 6,
+                      border: '1.5px solid',
+                      cursor: 'pointer',
+                      borderColor: tipoPlaca === 'antigo' ? 'var(--accent)' : 'var(--line)',
+                      background: tipoPlaca === 'antigo' ? 'var(--accent)' : 'transparent',
+                      color: tipoPlaca === 'antigo' ? '#fff' : 'var(--muted)',
+                      transition: 'all .15s',
+                    }}
+                  >
+                    Modelo Antigo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setTipoPlaca('mercosul'); setForm(f => ({ ...f, placa: '' })); setErros(e => ({ ...e, placa: '' })); }}
+                    style={{
+                      padding: '3px 10px',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      borderRadius: 6,
+                      border: '1.5px solid',
+                      cursor: 'pointer',
+                      borderColor: tipoPlaca === 'mercosul' ? 'var(--accent)' : 'var(--line)',
+                      background: tipoPlaca === 'mercosul' ? 'var(--accent)' : 'transparent',
+                      color: tipoPlaca === 'mercosul' ? '#fff' : 'var(--muted)',
+                      transition: 'all .15s',
+                    }}
+                  >
+                    Mercosul
+                  </button>
+                </div>
+              </div>
               <input
                 value={form.placa}
-                onChange={e => { setForm(f => ({ ...f, placa: formatarPlaca(e.target.value) })); setErros(e2 => ({ ...e2, placa: '' })); }}
-                placeholder="ABC-1234"
-                maxLength={8}
+                onChange={e => {
+                  const formatado = tipoPlaca === 'antigo'
+                    ? formatarPlacaAntiga(e.target.value)
+                    : formatarPlacaMercosul(e.target.value);
+                  setForm(f => ({ ...f, placa: formatado }));
+                  setErros(e2 => ({ ...e2, placa: '' }));
+                }}
+                placeholder={tipoPlaca === 'antigo' ? 'ABC-1234' : 'BRA2E19'}
+                maxLength={tipoPlaca === 'antigo' ? 8 : 7}
               />
               {erros.placa && <small style={{ color: 'var(--danger)', fontSize: 12 }}>{erros.placa}</small>}
             </label>
