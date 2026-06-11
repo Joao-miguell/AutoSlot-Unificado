@@ -170,90 +170,105 @@ export function ParkingProvider({ children }: { children: React.ReactNode }) {
   // ── Carregamento de vagas ──────────────────────────────────────────────────
 
   const carregarVagas = useCallback(async () => {
-    try {
-      // 1. Lista base de vagas (exclui INATIVA por padrão)
-      const { data: vagasData } = await api.get<{ vagas?: unknown[]; [key: string]: unknown }>('/api/vagas');
+    // Tenta até 3 vezes com backoff — resolve o problema de vagas vazias
+    // no primeiro login quando Railway/Supabase ainda estão aquecendo
+    const MAX_TENTATIVAS = 3;
+    const DELAY_MS = [0, 1500, 3000]; // 0s, 1.5s, 3s
 
-      // A API pode retornar { vagas: [...] } ou diretamente um array
-      const vagasRaw: unknown[] = Array.isArray(vagasData)
-        ? vagasData
-        : (vagasData.vagas ?? []);
-
-      // 1b. Busca vagas inativas separadamente (a API filtra INATIVA do default)
-      const resInativas = await api.get<{ vagas?: unknown[]; [key: string]: unknown }>('/api/vagas?status=INATIVA').catch(() => ({ data: { vagas: [] as unknown[] } }));
-      const inativasRaw: unknown[] = Array.isArray(resInativas.data)
-        ? resInativas.data
-        : ((resInativas.data as { vagas?: unknown[] }).vagas ?? []);
-
-      // Merge sem duplicar (por id)
-      const idsAtivas = new Set(vagasRaw.map(v => (v as Record<string, unknown>).id));
-      const todasVagasRaw = [...vagasRaw, ...inativasRaw.filter(v => !idsAtivas.has((v as Record<string, unknown>).id))];
-
-      // 2. Reservas ativas (RESERVADA e OCUPADA) em paralelo
-      const [resReservadas, resOcupadas] = await Promise.allSettled([
-        api.get<unknown[]>('/api/reservas?status=RESERVADA'),
-        api.get<unknown[]>('/api/reservas?status=OCUPADA'),
-      ]);
-
-      const reservasAtivas: Record<string, unknown>[] = [];
-
-      if (resReservadas.status === 'fulfilled') {
-        const d = resReservadas.value.data;
-        const lista = Array.isArray(d) ? d : ((d as { reservas?: unknown[] }).reservas ?? []);
-        reservasAtivas.push(...(lista as Record<string, unknown>[]));
+    for (let tentativa = 0; tentativa < MAX_TENTATIVAS; tentativa++) {
+      if (tentativa > 0) {
+        await new Promise(res => setTimeout(res, DELAY_MS[tentativa]));
       }
-      if (resOcupadas.status === 'fulfilled') {
-        const d = resOcupadas.value.data;
-        const lista = Array.isArray(d) ? d : ((d as { reservas?: unknown[] }).reservas ?? []);
-        reservasAtivas.push(...(lista as Record<string, unknown>[]));
-      }
+      try {
+        // 1. Lista base de vagas (exclui INATIVA por padrão)
+        const { data: vagasData } = await api.get<{ vagas?: unknown[]; [key: string]: unknown }>('/api/vagas');
 
-      // 3. Cruzamento: indexar reservas por vagaId e vagaCodigo
-      const reservaPorVagaId = new Map<number, Record<string, unknown>>();
-      const reservaPorCodigo = new Map<string, Record<string, unknown>>();
+        // A API pode retornar { vagas: [...] } ou diretamente um array
+        const vagasRaw: unknown[] = Array.isArray(vagasData)
+          ? vagasData
+          : (vagasData.vagas ?? []);
 
-      for (const r of reservasAtivas) {
-        if (r.vagaId != null) reservaPorVagaId.set(Number(r.vagaId), r);
-        const cod = (r.vagaIdentificacao ?? r.vagaCodigo) as string | undefined;
-        if (cod) reservaPorCodigo.set(String(cod).toUpperCase(), r);
-      }
+        // 1b. Busca vagas inativas separadamente (a API filtra INATIVA do default)
+        const resInativas = await api.get<{ vagas?: unknown[]; [key: string]: unknown }>('/api/vagas?status=INATIVA').catch(() => ({ data: { vagas: [] as unknown[] } }));
+        const inativasRaw: unknown[] = Array.isArray(resInativas.data)
+          ? resInativas.data
+          : ((resInativas.data as { vagas?: unknown[] }).vagas ?? []);
 
-      // 4. Mapear vagas cruzando com reservas
-      const vagasMapeadas: ParkingSpot[] = (todasVagasRaw as Record<string, unknown>[]).map((v) => {
-        const id = Number(v.id);
-        const codigo = String(v.codigo ?? v.identificacao ?? '');
-        const status = mapStatus(String(v.status ?? ''));
-        const tipo = mapTipo(String(v.tipoVaga ?? v.tipo ?? ''));
-        const posX = v.posicaoX != null ? Number(v.posicaoX) : v.posX != null ? Number(v.posX) : undefined;
-        const posY = v.posicaoY != null ? Number(v.posicaoY) : v.posY != null ? Number(v.posY) : undefined;
+        // Merge sem duplicar (por id)
+        const idsAtivas = new Set(vagasRaw.map(v => (v as Record<string, unknown>).id));
+        const todasVagasRaw = [...vagasRaw, ...inativasRaw.filter(v => !idsAtivas.has((v as Record<string, unknown>).id))];
 
-        const reserva = reservaPorVagaId.get(id) ?? reservaPorCodigo.get(codigo.toUpperCase());
+        // 2. Reservas ativas (RESERVADA e OCUPADA) em paralelo
+        const [resReservadas, resOcupadas] = await Promise.allSettled([
+          api.get<unknown[]>('/api/reservas?status=RESERVADA'),
+          api.get<unknown[]>('/api/reservas?status=OCUPADA'),
+        ]);
 
-        if (reserva) {
-          return {
-            id,
-            codigo,
-            status,
-            tipo,
-            posX,
-            posY,
-            reservaId: Number(reserva.id),
-            placa: String(reserva.placa ?? reserva.placaVeiculo ?? ''),
-            cliente: String(reserva.nomeCliente ?? reserva.cliente ?? ''),
-            modelo: String(reserva.modeloVeiculo ?? reserva.modelo ?? ''),
-            entrada: String(reserva.horarioChegadaReal ?? reserva.horarioChegadaPrevisto ?? ''),
-            saidaPrevista: String(reserva.horarioSaidaPrevisto ?? reserva.saidaPrevista ?? ''),
-            operador: String(reserva.operador ?? reserva.nomeOperador ?? ''),
-          };
+        const reservasAtivas: Record<string, unknown>[] = [];
+
+        if (resReservadas.status === 'fulfilled') {
+          const d = resReservadas.value.data;
+          const lista = Array.isArray(d) ? d : ((d as { reservas?: unknown[] }).reservas ?? []);
+          reservasAtivas.push(...(lista as Record<string, unknown>[]));
+        }
+        if (resOcupadas.status === 'fulfilled') {
+          const d = resOcupadas.value.data;
+          const lista = Array.isArray(d) ? d : ((d as { reservas?: unknown[] }).reservas ?? []);
+          reservasAtivas.push(...(lista as Record<string, unknown>[]));
         }
 
-        return { id, codigo, status, tipo, posX, posY };
-      });
+        // 3. Cruzamento: indexar reservas por vagaId e vagaCodigo
+        const reservaPorVagaId = new Map<number, Record<string, unknown>>();
+        const reservaPorCodigo = new Map<string, Record<string, unknown>>();
 
-      vagasMapeadas.sort((a, b) => a.id - b.id);
-      setVagas(vagasMapeadas);
-    } catch (err) {
-      console.error('[ParkingContext] Erro ao carregar vagas:', err);
+        for (const r of reservasAtivas) {
+          if (r.vagaId != null) reservaPorVagaId.set(Number(r.vagaId), r);
+          const cod = (r.vagaIdentificacao ?? r.vagaCodigo) as string | undefined;
+          if (cod) reservaPorCodigo.set(String(cod).toUpperCase(), r);
+        }
+
+        // 4. Mapear vagas cruzando com reservas
+        const vagasMapeadas: ParkingSpot[] = (todasVagasRaw as Record<string, unknown>[]).map((v) => {
+          const id = Number(v.id);
+          const codigo = String(v.codigo ?? v.identificacao ?? '');
+          const status = mapStatus(String(v.status ?? ''));
+          const tipo = mapTipo(String(v.tipoVaga ?? v.tipo ?? ''));
+          const posX = v.posicaoX != null ? Number(v.posicaoX) : v.posX != null ? Number(v.posX) : undefined;
+          const posY = v.posicaoY != null ? Number(v.posicaoY) : v.posY != null ? Number(v.posY) : undefined;
+
+          const reserva = reservaPorVagaId.get(id) ?? reservaPorCodigo.get(codigo.toUpperCase());
+
+          if (reserva) {
+            return {
+              id,
+              codigo,
+              status,
+              tipo,
+              posX,
+              posY,
+              reservaId: Number(reserva.id),
+              placa: String(reserva.placa ?? reserva.placaVeiculo ?? ''),
+              cliente: String(reserva.nomeCliente ?? reserva.cliente ?? ''),
+              modelo: String(reserva.modeloVeiculo ?? reserva.modelo ?? ''),
+              entrada: String(reserva.horarioChegadaReal ?? reserva.horarioChegadaPrevisto ?? ''),
+              saidaPrevista: String(reserva.horarioSaidaPrevisto ?? reserva.saidaPrevista ?? ''),
+              operador: String(reserva.operador ?? reserva.nomeOperador ?? ''),
+            };
+          }
+
+          return { id, codigo, status, tipo, posX, posY };
+        });
+
+        vagasMapeadas.sort((a, b) => a.id - b.id);
+        setVagas(vagasMapeadas);
+        return; // Sucesso — sai do loop de tentativas
+      } catch (err) {
+        console.error(`[ParkingContext] Erro ao carregar vagas (tentativa ${tentativa + 1}/${MAX_TENTATIVAS}):`, err);
+        if (tentativa === MAX_TENTATIVAS - 1) {
+          // Esgotou as tentativas — mantém vagas atuais (não limpa)
+          console.error('[ParkingContext] Todas as tentativas falharam. Vagas não atualizadas.');
+        }
+      }
     }
   }, []);
 
@@ -266,6 +281,9 @@ export function ParkingProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Enquanto o AuthContext ainda está verificando o localStorage, não faz nada
     if (authLoading) return;
+
+    // Flag de cancelamento: evita atualizar estado após desmonte ou mudança de deps
+    let cancelado = false;
 
     async function init() {
       // Se não estiver logado, limpa o estado e encerra
@@ -282,6 +300,7 @@ export function ParkingProvider({ children }: { children: React.ReactNode }) {
           // Tarifa ativa — silenciar 404
           api.get('/api/configuracoes/tarifa-ativa')
             .then(({ data }) => {
+              if (cancelado) return;
               if (data?.valorHora != null) {
                 setConfiguracoes({
                   valorHora: Number(data.valorHora),
@@ -296,10 +315,14 @@ export function ParkingProvider({ children }: { children: React.ReactNode }) {
             }),
         ]);
       } finally {
-        setLoading(false);
+        if (!cancelado) setLoading(false);
       }
     }
+
     init();
+
+    // Cleanup: cancela atualizações de estado pendentes
+    return () => { cancelado = true; };
   }, [authLoading, authLogado, carregarVagas]);
 
   // ── Funções de cálculo ────────────────────────────────────────────────────
