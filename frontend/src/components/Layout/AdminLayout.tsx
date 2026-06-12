@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { useTheme } from '../../auth/ThemeContext';
+import { useTheme, useThemeSync } from '../../auth/ThemeContext';
 import {
   FileText, Settings, LogOut, Sun, Moon,
   Map, LogIn, LogOut as LogOutIcon, BookOpen, ShieldCheck, PlusCircle, Users, User,
@@ -15,6 +15,7 @@ type AdminLayoutProps = {
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const { usuario, logout } = useAuth();
   const { temaEscuro, alternarTema } = useTheme();
+  useThemeSync(); // Rebusca o tema do banco toda vez que logar
   const navigate = useNavigate();
   const isAdmin = usuario?.perfil === 'ADMIN';
 
