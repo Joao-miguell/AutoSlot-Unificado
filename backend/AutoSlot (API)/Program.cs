@@ -9,6 +9,10 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Railway injeta a variável PORT dinamicamente — lemos ela aqui
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://+:{port}");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -31,12 +35,21 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactApp", policy =>
     {
-        policy.WithOrigins(
-            "http://localhost:5173",
-            "http://localhost:3000"
-        )
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        if (builder.Environment.IsProduction())
+        {
+            // Em produção: aceita qualquer origem (Vercel + outros)
+            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        }
+        else
+        {
+            policy.WithOrigins(
+                "http://localhost:5173",
+                "https://felipe-goldberg-auto-slot-unificado.vercel.app",
+                "http://localhost:3000"
+            )
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
     });
 });
 
@@ -171,5 +184,9 @@ app.UseSwaggerUI();
 app.UseCors("ReactApp");
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Endpoint de health check para o Railway
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+
 app.MapControllers();
 app.Run();

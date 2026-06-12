@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+
 import api from '../services/api';
+
+import { aplicarTemaDoStorage } from '../hooks/useTema';
+
 
 type ThemeContextType = {
   temaEscuro: boolean;
@@ -20,6 +24,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     document.documentElement.dataset.theme = temaEscuro ? 'dark' : 'light';
     localStorage.setItem('autoslot-tema', temaEscuro ? 'escuro' : 'claro');
+    // Reaaplica a cor customizada do tema após mudar data-theme.
+    // O CSS html[data-theme="dark"] sobrescreve as CSS vars inline — por isso
+    // precisamos reaplicar logo depois que o data-theme for setado.
+    aplicarTemaDoStorage();
   }, [temaEscuro]);
 
   // Ao montar, busca o tema global do banco (sem auth) e sincroniza

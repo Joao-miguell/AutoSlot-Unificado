@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParking, ParkingSpot } from '../../context/ParkingContext';
 import { dataHora, duracao, moeda, toDateTimeLocal } from '../../utils';
 import api from '../../services/api';
+import GraficosReceita from '../../components/GraficosReceita';
 
 type Modal = 'reserva' | 'detalhes' | 'pagamento' | null;
 const statusClass: Record<ParkingSpot['status'], string> = {
@@ -178,6 +179,9 @@ export default function Dashboard() {
           ))}
         </div>
       )}
+
+      {/* ── Gráficos ─────────────────────────────────────────────── */}
+      <GraficosReceita />
 
       <div className="page-title card">
         <div>

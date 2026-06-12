@@ -3,11 +3,49 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="src\images\favicon.ico" />
+    <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sistema de Estacionamento</title>
+    <meta name="theme-color" content="#f97316" />
+    <title>AutoSlot — Sistema de Estacionamento</title>
+    <!--
+      Script BLOQUEANTE: executa sincrona­mente antes de qualquer CSS ou React.
+      Aplica a cor de acento do tema salvo no localStorage para evitar flash
+      de cor padrão em qualquer cenário: reload, logout/login, primeira visita.
+      Técnica usada por Next.js / shadcn / Radix UI.
+    -->
+    <script>
+      (function () {
+        try {
+          var KEY = '@AutoSlot:tema';
+          var PRESETS  = ['#f97316','#3b82f6','#22c55e','#a855f7','#ec4899','#06b6d4'];
+          var SUBS     = [
+            'rgba(249,115,22,0.12)','rgba(59,130,246,0.12)','rgba(34,197,94,0.12)',
+            'rgba(168,85,247,0.12)','rgba(236,72,153,0.12)','rgba(6,182,212,0.12)'
+          ];
+          var raw = localStorage.getItem(KEY);
+          if (raw) {
+            var cfg = JSON.parse(raw);
+            var idx    = typeof cfg.presetIndex === 'number' ? cfg.presetIndex : 0;
+            var accent = cfg.usarCorCustom ? cfg.corCustom : (PRESETS[idx] || PRESETS[0]);
+            var sub    = cfg.usarCorCustom ? accent + '20'  : (SUBS[idx]    || SUBS[0]);
+            var el = document.documentElement;
+            el.style.setProperty('--accent',     accent);
+            el.style.setProperty('--accent-sub', sub);
+          }
+        } catch (e) { /* silencioso: usa cor padrão do CSS */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Registra o Service Worker para modo offline (PWA)
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
   </body>
 </html>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParking, TipoVaga } from '../../context/ParkingContext';
 import { dataHora, moeda } from '../../utils';
 import api from '../../services/api';
+import ConfiguracaoTema from '../../components/ConfiguracaoTema';
 
 // Extrai mensagem legível a partir do erro axios
 function erroMsg(err: unknown, fallback: string): string {
@@ -117,9 +118,12 @@ export default function Configuracoes() {
       <div className="page-title card">
         <div>
           <h2>Configurações</h2>
-          <p>Acesso exclusivo do administrador. Gerencie vagas e tarifas do sistema.</p>
+          <p>Acesso exclusivo do administrador. Gerencie vagas, tarifas e identidade visual do sistema.</p>
         </div>
       </div>
+
+      {/* ── Tema / Identidade Visual ─────────────────────────────── */}
+      <ConfiguracaoTema />
 
       <div className="settings-grid" style={{ gridTemplateColumns: '1.4fr 0.6fr' }}>
         {/* ── Gestão de Vagas ─────────────────────────────────────── */}

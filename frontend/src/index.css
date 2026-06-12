@@ -276,6 +276,26 @@ html[data-theme="light"] .login-input:-webkit-autofill:focus {
    Tema: Industrial Premium · Controle Total
    ============================================================ */
 
+/* ── Cores de acento e constantes ─────────────────────────────────────────
+   IMPORTANTE: estas vars ficam APENAS em :root, NÃO em html[data-theme].
+   Assim o useTema pode sobrescrever via inline style sem conflito de cascata.
+   ──────────────────────────────────────────────────────────────────────── */
+:root {
+  --accent:       #f97316;
+  --accent-2:     #ea6c0a;
+  --accent-glow:  rgba(249,115,22,0.22);
+  --accent-sub:   rgba(249,115,22,0.08);
+  --glow-accent:  0 0 28px rgba(249,115,22,0.18);
+
+  --radius:    16px;
+  --radius-sm: 10px;
+  --radius-xs: 7px;
+
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --t: 200ms;
+}
+
+/* ── Cores do tema escuro (padrão) ─────────────────────────────────────── */
 :root,
 html[data-theme="dark"] {
   --bg:       #080b12;
@@ -293,11 +313,6 @@ html[data-theme="dark"] {
   --muted:   #8892a4;
   --muted-2: #5e6b7e;
 
-  --accent:       #f97316;
-  --accent-2:     #ea6c0a;
-  --accent-glow:  rgba(249,115,22,0.22);
-  --accent-sub:   rgba(249,115,22,0.08);
-
   --success:      #22c55e;
   --success-sub:  rgba(34,197,94,0.09);
   --warning:      #eab308;
@@ -309,16 +324,8 @@ html[data-theme="dark"] {
   --purple:       #a78bfa;
   --purple-sub:   rgba(167,139,250,0.09);
 
-  --radius:    16px;
-  --radius-sm: 10px;
-  --radius-xs: 7px;
-
   --shadow:    0 4px 24px rgba(0,0,0,0.55), 0 1px 4px rgba(0,0,0,0.4);
   --shadow-lg: 0 20px 60px rgba(0,0,0,0.7), 0 8px 20px rgba(0,0,0,0.5);
-  --glow-accent: 0 0 28px rgba(249,115,22,0.18);
-
-  --ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --t: 200ms;
 }
 
 html[data-theme="light"] {
@@ -1059,4 +1066,10 @@ html[data-theme="light"] .demo-users { background: var(--bg); }
   .payment-options { flex-wrap: wrap; }
   .reservas-toolbar { flex-direction: column; align-items: stretch; }
   .status-summary-chips { justify-content: flex-start; }
+}
+
+/* ── Toast animations ─────────────────────────────────────── */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100px); }
+  to   { opacity: 1; transform: translateX(0); }
 }

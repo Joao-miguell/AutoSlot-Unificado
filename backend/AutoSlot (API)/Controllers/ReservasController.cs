@@ -223,6 +223,31 @@ public class ReservasController : ControllerBase
         catch (Exception ex) { return BadRequest(new { mensagem = ex.Message }); }
     }
 
+    [HttpGet("buscar")]
+    public async Task<IActionResult> BuscarPorPlacaOuCliente([FromQuery] string? placa, [FromQuery] string? cliente)
+    {
+        if (string.IsNullOrWhiteSpace(placa) && string.IsNullOrWhiteSpace(cliente))
+            return BadRequest(new { mensagem = "Informe placa ou nome do cliente para buscar." });
+
+        var reservas = await _reservasService.BuscarPorPlacaOuCliente(placa, cliente);
+
+        return Ok(reservas.Select(r => new {
+            r.Id,
+            r.Placa,
+            r.NomeCliente,
+            r.ModeloVeiculo,
+            r.Status,
+            r.HorarioChegadaPrevisto,
+            r.HorarioChegadaReal,
+            r.HorarioSaidaPrevisto,
+            r.HorarioSaidaReal,
+            r.CriadoEm,
+            VagaCodigo = r.Vaga != null ? r.Vaga.Codigo : "",
+            VagaTipo = r.Vaga != null ? r.Vaga.TipoVaga : "",
+            OperadorNome = r.Funcionario != null ? r.Funcionario.Nome : ""
+        }));
+    }
+
     private int ObterFuncionarioId()
     {
         var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
