@@ -91,10 +91,12 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
 
           <div className="nav-section-label">Relatórios</div>
 
-          <NavLink to="/relatorios" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-            <FileText size={16} />
-            Financeiro
-          </NavLink>
+          {isAdmin && (
+            <NavLink to="/relatorios" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+              <FileText size={16} />
+              Financeiro
+            </NavLink>
+          )}
 
           <NavLink to="/historico" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <Clock size={16} />

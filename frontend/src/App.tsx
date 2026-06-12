@@ -51,7 +51,7 @@ function App() {
               <Route path="/nova-reserva" element={<Protegida><NovaReserva /></Protegida>} />
               <Route path="/checkin"      element={<Protegida><CheckIn /></Protegida>} />
               <Route path="/checkout"     element={<Protegida><CheckOut /></Protegida>} />
-              <Route path="/relatorios"   element={<Protegida><Relatorios /></Protegida>} />
+              <Route path="/relatorios"   element={<SoAdmin><Relatorios /></SoAdmin>} />
               <Route path="/historico"    element={<Protegida><HistoricoVeiculo /></Protegida>} />
               <Route path="/perfil"       element={<Protegida><Perfil /></Protegida>} />
               <Route path="/recibo/:id"   element={<PrivateRoute><Recibo /></PrivateRoute>} />
