@@ -1,4 +1,4 @@
-﻿using AutoSlot.Application.Services;
+using AutoSlot.Application.Services;
 using AutoSlot.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +17,31 @@ public class ConfiguracoesController : ControllerBase
     {
         _configuracoesService = configuracoesService;
     }
+
+    // ── Tema Global ───────────────────────────────────────────────────────────
+
+    [HttpGet("tema")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ObterTema()
+    {
+        var tema = await _configuracoesService.ObterTema();
+        return Ok(new { tema });
+    }
+
+    [HttpPut("tema")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> SalvarTema([FromBody] TemaDTO dto)
+    {
+        try
+        {
+            var funcionarioId = ObterFuncionarioId();
+            await _configuracoesService.SalvarTema(dto.Tema, funcionarioId);
+            return Ok(new { mensagem = "Tema salvo com sucesso!", tema = dto.Tema });
+        }
+        catch (Exception ex) { return BadRequest(new { mensagem = ex.Message }); }
+    }
+
+    // ── Tarifas ───────────────────────────────────────────────────────────────
 
     [HttpGet("tarifa-ativa")]
     public async Task<IActionResult> ObterTarifaAtiva()

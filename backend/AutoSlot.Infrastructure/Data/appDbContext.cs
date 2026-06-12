@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Pagamento> Pagamentos { get; set; }
     public DbSet<Tarifa> Tarifas { get; set; }
     public DbSet<Auditoria> Auditorias { get; set; }
+    public DbSet<Configuracao> Configuracoes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,6 +23,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Pagamento>().ToTable("pagamentos");
         modelBuilder.Entity<Tarifa>().ToTable("tarifas");
         modelBuilder.Entity<Auditoria>().ToTable("auditoria");
+        modelBuilder.Entity<Configuracao>().ToTable("configuracoes_sistema");
 
         modelBuilder.Entity<Funcionario>(e =>
         {

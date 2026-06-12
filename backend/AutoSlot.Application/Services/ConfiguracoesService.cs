@@ -15,6 +15,31 @@ public class ConfiguracoesService
         _auditoria = auditoria;
     }
 
+    public async Task<string> ObterTema()
+    {
+        var config = await _context.Configuracoes.FirstOrDefaultAsync();
+        return config?.Tema ?? "escuro";
+    }
+
+    public async Task SalvarTema(string tema, int funcionarioId)
+    {
+        var config = await _context.Configuracoes.FirstOrDefaultAsync();
+        if (config == null)
+        {
+            config = new Configuracao { Tema = tema, AtualizadoEm = DateTime.UtcNow };
+            _context.Configuracoes.Add(config);
+        }
+        else
+        {
+            config.Tema = tema;
+            config.AtualizadoEm = DateTime.UtcNow;
+        }
+        await _context.SaveChangesAsync();
+
+        await _auditoria.Registrar(funcionarioId, "UPDATE", "CONFIGURACAO", config.Id.ToString(),
+            resumo: $"Tema global alterado para '{tema}'");
+    }
+
     public async Task<Tarifa?> ObterTarifaAtiva(string? tipoVaga = null)
     {
         // First try to find a specific tariff for this vaga type
