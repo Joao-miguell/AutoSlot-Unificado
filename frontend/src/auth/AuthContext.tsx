@@ -32,7 +32,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
-    localStorage.clear();
+    localStorage.removeItem('@AutoSlot:token');
+    localStorage.removeItem('@AutoSlot:user');
     setUsuario(null);
   };
 
